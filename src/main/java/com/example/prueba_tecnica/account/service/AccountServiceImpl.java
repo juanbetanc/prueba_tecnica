@@ -62,6 +62,18 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public List<AccountResponse> findByClientId(UUID clientId) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ClientNotFoundException(
+                        "No se encontró el cliente con el id: " + clientId
+                ));
+
+        return accountRepository.findByClientId(clientId).stream()
+                .map(accountMapper::toResponse)
+                .toList();
+    }
+
+    @Override
     public AccountResponse activate(UUID id) {
         Account account = changeStatus(id, AccountStatus.ACTIVE);
         Account saved = accountRepository.save(account);

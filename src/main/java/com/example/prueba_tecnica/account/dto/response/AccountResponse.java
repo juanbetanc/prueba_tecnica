@@ -17,6 +17,6 @@ public record AccountResponse(
         Boolean gmfExempt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        ClientResponse cliente
+        ClientResponse client
 ) {
 }

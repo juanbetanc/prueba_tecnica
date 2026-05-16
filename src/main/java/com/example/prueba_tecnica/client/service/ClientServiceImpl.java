@@ -18,63 +18,56 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class ClientServiceImpl implements ClientService{
+public class ClientServiceImpl implements ClientService {
+
     private final ClientRepository clientRepository;
     private final AccountRepository accountRepository;
     private final ClientMapper clientMapper;
 
     @Override
     public ClientResponse create(ClientRequest request) {
-        Client client = Client.builder()
-                .identificationType(request.identificationType())
-                .identificationNumber(request.identificationNumber())
-                .firstName(request.firstName())
-                .lastName(request.lastName())
-                .email(request.email())
-                .birthDate(request.birthDate())
-                .build();
-
         validateAdult(request.birthDate());
+        validateUniqueIdentification(request);
+        validateUniqueEmail(request.email());
+
+        Client client = clientMapper.toEntity(request);
 
         Client saved = clientRepository.save(client);
+
         return clientMapper.toResponse(saved);
     }
 
     @Override
     public List<ClientResponse> findAll() {
-        return clientRepository.findAll().stream()
+        return clientRepository.findAll()
+                .stream()
                 .map(clientMapper::toResponse)
                 .toList();
     }
 
     @Override
     public ClientResponse findById(UUID id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException("No se encontró el cliente con el id: " + id));
+        Client client = getClientById(id);
 
         return clientMapper.toResponse(client);
     }
 
     @Override
     public ClientResponse update(UUID id, ClientRequest request) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException("No se encontró el cliente con el id: " + id));
+        Client client = getClientById(id);
 
-        client.setIdentificationType(request.identificationType());
-        client.setIdentificationNumber(request.identificationNumber());
-        client.setFirstName(request.firstName());
-        client.setLastName(request.lastName());
-        client.setEmail(request.email());
-        client.setBirthDate(request.birthDate());
+        validateAdult(request.birthDate());
+
+        clientMapper.updateEntityFromRequest(request, client);
 
         Client saved = clientRepository.save(client);
+
         return clientMapper.toResponse(saved);
     }
 
     @Override
     public void delete(UUID id) {
-        Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ClientNotFoundException("No se encontró el cliente con el id: " + id));
+        Client client = getClientById(id);
 
         if (accountRepository.existsByClientId(id)) {
             throw new BusinessException("No se puede eliminar el cliente porque tiene productos vinculados.");
@@ -83,11 +76,35 @@ public class ClientServiceImpl implements ClientService{
         clientRepository.delete(client);
     }
 
-    private void validateAdult(LocalDate birthDate){
+    private Client getClientById(UUID id) {
+        return clientRepository.findById(id)
+                .orElseThrow(() -> new ClientNotFoundException(
+                        "No se encontró el cliente con el id: " + id
+                ));
+    }
+
+    private void validateAdult(LocalDate birthDate) {
         int age = Period.between(birthDate, LocalDate.now()).getYears();
 
-        if(age < 18){
+        if (age < 18) {
             throw new BusinessException("El cliente debe ser mayor de edad.");
+        }
+    }
+
+    private void validateUniqueIdentification(ClientRequest request) {
+        boolean exists = clientRepository.existsByIdentificationTypeAndIdentificationNumber(
+                request.identificationType(),
+                request.identificationNumber()
+        );
+
+        if (exists) {
+            throw new BusinessException("Ya existe un cliente con ese tipo y número de identificación.");
+        }
+    }
+
+    private void validateUniqueEmail(String email) {
+        if (clientRepository.existsByEmail(email)) {
+            throw new BusinessException("Ya existe un cliente con ese correo electrónico.");
         }
     }
 }

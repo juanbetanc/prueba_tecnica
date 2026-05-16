@@ -10,6 +10,7 @@ public interface AccountService {
     AccountResponse create(AccountRequest request);
     List<AccountResponse> findAll();
     AccountResponse findById(UUID id);
+    List<AccountResponse> findByClientId(UUID clientId);
     AccountResponse activate(UUID id);
     AccountResponse inactivate(UUID id);
     AccountResponse cancel(UUID id);

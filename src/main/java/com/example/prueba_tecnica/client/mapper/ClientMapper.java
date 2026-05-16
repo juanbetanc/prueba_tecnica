@@ -4,9 +4,14 @@ import com.example.prueba_tecnica.client.dto.request.ClientRequest;
 import com.example.prueba_tecnica.client.dto.response.ClientResponse;
 import com.example.prueba_tecnica.client.entity.Client;
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface ClientMapper {
+
     Client toEntity(ClientRequest request);
+
     ClientResponse toResponse(Client client);
+
+    void updateEntityFromRequest(ClientRequest request, @MappingTarget Client client);
 }
